@@ -13,11 +13,7 @@ class DatabaseHelper {
   Future<Database> _initDatabase() async {
     final databasePath = await getDatabasesPath();
     final path = join(databasePath, 'recipe_app.db');
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: _onCreate,
-    );
+    return await openDatabase(path, version: 1, onCreate: _onCreate);
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -58,14 +54,13 @@ class DatabaseHelper {
     );
   }
 
+  Future<List<Map<String, dynamic>>> getCategories() async {
+    final db = await database;
+    return await db.query('categories');
+  }
+
   Future<int> deleteRecipe(String id) async {
     final db = await database;
-    return await db.delete(
-      'recipes',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete('recipes', where: 'id = ?', whereArgs: [id]);
   }
 }
-
-

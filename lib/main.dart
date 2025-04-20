@@ -1,6 +1,7 @@
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import 'database_helper.dart';
 
 final Map<String, IconData> categoryIcons = {
   'groceries': Icons.local_grocery_store,
@@ -80,6 +81,26 @@ class Recipe {
     required this.category,
   });
 
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'ingredients': ingredients.join(','),
+      'instructions': instructions,
+      'category': category,
+    };
+  }
+
+  static Recipe fromMap(Map<String, dynamic> map) {
+    return Recipe(
+      id: map['id'],
+      name: map['name'],
+      ingredients: map['ingredients'].split(','),
+      instructions: map['instructions'],
+      category: map['category'],
+    );
+  }
+
   @override
   String toString() {
     return 'Recipe{id: $id, name: $name, ingredients: $ingredients, instructions: $instructions, category: $category}';
@@ -91,6 +112,13 @@ class Category {
   final String name;
 
   Category({required this.id, required this.name});
+  Map<String, dynamic> toMap() {
+    return {'id': id, 'name': name};
+  }
+
+  static Category fromMap(Map<String, dynamic> map) {
+    return Category(id: map['id'], name: map['name']);
+  }
 }
 
 class CategoriesPage extends StatefulWidget {
@@ -374,17 +402,13 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   List<Recipe> _recipes = [];
-  final List<Category> _categories = [
-    Category(id: 'salad', name: 'Salads'),
-    Category(id: 'dessert', name: 'Dessert'),
-    Category(id: 'soup', name: 'Soup'),
-    Category(id: 'other', name: 'Other'),
-  ];
+  final List<Category> _categories = [Category(id: 'other', name: 'Other')];
+  late DatabaseHelper dbHelper;
 
   void _addCategory(String newCategoryName) {
     if (newCategoryName.isNotEmpty) {
       final newCategory = Category(
-        id: newCategoryName.toLowerCase(),
+        id: newCategoryName.toLowerCase().replaceAll(' ', '_'),
         name: newCategoryName,
       );
       final otherCategory = _categories.firstWhere((cat) => cat.id == 'other');
@@ -430,23 +454,16 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    _recipes = [
-      Recipe(
-        id: '1',
-        name: 'Spaghetti Carbonara',
-        instructions:
-            "Cook pasta. Fry pancetta. Mix eggs and cheese. Combine all.",
-        category: 'groceries',
-        ingredients: ['Spaghetti', 'Pancetta', 'Eggs', 'Cheese'],
-      ),
-      Recipe(
-        id: '2',
-        name: 'Chicken Stir-Fry',
-        instructions: "Cut chicken. Stir-fry with vegetables. Add sauce.",
-        category: 'dining',
-        ingredients: ['Chicken', 'Vegetables', 'Soy Sauce', 'Rice'],
-      ),
-    ];
+    dbHelper = DatabaseHelper();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    final categories = await dbHelper.getCategories();
+    setState(() {
+      _categories.clear();
+      _categories.addAll(categories.map((map) => Category.fromMap(map)));
+    });
   }
 
   @override
