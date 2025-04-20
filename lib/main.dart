@@ -156,7 +156,7 @@ class _AddEditRecipePageState extends State<AddEditRecipePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.recipe == null ? 'Add Recipe' : 'Edit Recipe'),
+        title: Text(widget.recipe == null ? 'Add New Recipe' : 'Edit Recipe'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -165,8 +165,11 @@ class _AddEditRecipePageState extends State<AddEditRecipePage> {
           child: Column(
             children: [
               TextFormField(
+                
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Name'),
+                decoration: const InputDecoration(
+                    hintText: 'Enter Recipe Name',
+                    labelText: 'Name'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter a recipe name';
@@ -176,13 +179,15 @@ class _AddEditRecipePageState extends State<AddEditRecipePage> {
               ),
               TextFormField(
                 controller: _ingredientsController,
-                decoration: const InputDecoration(
-                  labelText: 'Ingredients (comma separated)',
+                 decoration: const InputDecoration(
+                  hintText: 'Enter Ingredients (comma separated)',
+                  labelText: 'Ingredients',
                 ),
               ),
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Category'),
+                decoration: const InputDecoration(labelText: 'Select Category'),
                 value: _selectedCategoryId,
+                
                 onChanged: (newValue) {
                   setState(() {
                     _selectedCategoryId = newValue;
@@ -200,10 +205,14 @@ class _AddEditRecipePageState extends State<AddEditRecipePage> {
               ),
               TextFormField(
                 controller: _instructionsController,
-                decoration: const InputDecoration(labelText: 'Instructions'),
+                 decoration: const InputDecoration(
+                  hintText: 'Enter Recipe Instructions',
+                  labelText: 'Instructions'),
                 maxLines: null,
               ),
+              const SizedBox(height: 20),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(16)),
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
                     final recipe = Recipe(
@@ -220,7 +229,7 @@ class _AddEditRecipePageState extends State<AddEditRecipePage> {
                     Navigator.pop(context, recipe);
                   }
                 },
-                child: const Text('Submit'),
+                child: const Text('Create Recipe', style: TextStyle(fontSize: 18)),
               ),
             ],
           ),
