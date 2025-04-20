@@ -2,24 +2,36 @@ import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:intl/intl.dart';
+
+final Map<String, IconData> categoryIcons = {
+  'groceries': Icons.local_grocery_store,
+  'dining': Icons.restaurant,
+  'shopping': Icons.shopping_cart,
+  'other': Icons.category,
+};
+
+String formatDate(DateTime date) {
+  return DateFormat('MMM dd, yyyy').format(date);
+}
+
 void main() {
-  // Example usage of Receipt class
-  final receipt1 = Receipt(
+  // Example usage of Recipe class
+  final recipe1 = Recipe(
     id: '1',
-    date: DateTime.now(),
-    amount: 100.50,
+    name: 'Spaghetti Carbonara',
+    instructions: "Cook pasta. Fry pancetta. Mix eggs and cheese. Combine all.",
     category: 'Groceries',
-    items: ['Milk', 'Bread', 'Eggs'],
+    ingredients: ['Spaghetti', 'Pancetta', 'Eggs', 'Cheese'],
   );
 
-  final receipt2 = Receipt(
+  final recipe2 = Recipe(
     id: '2',
-    date: DateTime.now(),
-    amount: 50.00,
+    name: 'Chicken Stir-Fry',
+    instructions: "Cut chicken. Stir-fry with vegetables. Add sauce.",
     category: 'Dining',
-    items: ['Pizza', 'Drinks'],
+    ingredients: ['Chicken', 'Vegetables', 'Soy Sauce', 'Rice'],
   );
-
   runApp(const MyApp());
 }
 
@@ -55,23 +67,24 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class Receipt {
+class Recipe {
   final String id;
-  final DateTime date;
-  final double amount;
+  final String name;
+  final List<String> ingredients;
+  final String instructions;
   final String category;
-  final List<String> items;
 
-  Receipt({
+  Recipe({
     required this.id,
-    required this.date,
-    required this.amount,
+    required this.name,
+    required this.ingredients,
+    required this.instructions,
     required this.category,
-    required this.items,
   });
+
   @override
   String toString() {
-    return 'Receipt{id: $id, date: $date, amount: $amount, category: $category, items: $items}';
+    return 'Recipe{id: $id, name: $name, ingredients: $ingredients, instructions: $instructions, category: $category}';
   }
 }
 
@@ -101,70 +114,49 @@ class CategoriesPage extends StatelessWidget {
   }
 }
 
-class AddEditReceiptPage extends StatefulWidget {
-  final Receipt? receipt;
+class AddEditRecipePage extends StatefulWidget {
+  final Recipe? recipe;
   final List<Category> categories;
 
-  const AddEditReceiptPage({super.key, this.receipt, required this.categories});
+  const AddEditRecipePage({super.key, this.recipe, required this.categories});
 
   @override
-  _AddEditReceiptPageState createState() => _AddEditReceiptPageState();
+  _AddEditRecipePageState createState() => _AddEditRecipePageState();
 }
 
-class _AddEditReceiptPageState extends State<AddEditReceiptPage> {
+class _AddEditRecipePageState extends State<AddEditRecipePage> {
   final _formKey = GlobalKey<FormState>();
-  final _dateController = TextEditingController();
-  final _amountController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _ingredientsController = TextEditingController();
   final _categoryController = TextEditingController();
-  final _itemsController = TextEditingController();
-  DateTime _selectedDate = DateTime.now();
+  final _instructionsController = TextEditingController();
   String? _selectedCategoryId;
 
   @override
   void initState() {
     super.initState();
-    if (widget.receipt != null) {
-      _selectedDate = widget.receipt!.date;
-      _dateController.text = DateFormat(
-        'yyyy-MM-dd',
-      ).format(widget.receipt!.date);
-      _amountController.text = widget.receipt!.amount.toString();
-      _selectedCategoryId = widget.receipt!.category;
-      _itemsController.text = widget.receipt!.items.join(', ');
-    } else {
-      _dateController.text = DateFormat('yyyy-MM-dd').format(_selectedDate);
-    }
+    if (widget.recipe != null) {
+      _nameController.text = widget.recipe!.name;
+      _ingredientsController.text = widget.recipe!.ingredients.join(', ');
+      _instructionsController.text = widget.recipe!.instructions;
+      _selectedCategoryId = widget.recipe!.category;
+    } else {}
   }
 
   @override
   void dispose() {
-    _dateController.dispose();
-    _amountController.dispose();
+    _nameController.dispose();
+    _ingredientsController.dispose();
+    _instructionsController.dispose();
     _categoryController.dispose();
-    _itemsController.dispose();
     super.dispose();
-  }
-
-  void _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-        _dateController.text = DateFormat('yyyy-MM-dd').format(_selectedDate);
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.receipt == null ? 'Add Receipt' : 'Edit Receipt'),
+        title: Text(widget.recipe == null ? 'Add Recipe' : 'Edit Recipe'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -173,21 +165,20 @@ class _AddEditReceiptPageState extends State<AddEditReceiptPage> {
           child: Column(
             children: [
               TextFormField(
-                controller: _dateController,
-                decoration: const InputDecoration(labelText: 'Date'),
-                onTap: () => _selectDate(context),
-                readOnly: true,
-              ),
-              TextFormField(
-                controller: _amountController,
-                decoration: const InputDecoration(labelText: 'Amount'),
-                keyboardType: TextInputType.number,
+                controller: _nameController,
+                decoration: const InputDecoration(labelText: 'Name'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter amount';
+                    return 'Please enter a recipe name';
                   }
                   return null;
                 },
+              ),
+              TextFormField(
+                controller: _ingredientsController,
+                decoration: const InputDecoration(
+                  labelText: 'Ingredients (comma separated)',
+                ),
               ),
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'Category'),
@@ -208,26 +199,25 @@ class _AddEditReceiptPageState extends State<AddEditReceiptPage> {
                     }).toList(),
               ),
               TextFormField(
-                controller: _itemsController,
-                decoration: const InputDecoration(
-                  labelText: 'Items (comma separated)',
-                ),
+                controller: _instructionsController,
+                decoration: const InputDecoration(labelText: 'Instructions'),
+                maxLines: null,
               ),
               ElevatedButton(
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
-                    final receipt = Receipt(
-                      id: widget.receipt?.id ?? const Uuid().v4(),
-                      date: _selectedDate,
-                      amount: double.parse(_amountController.text),
+                    final recipe = Recipe(
+                      id: widget.recipe?.id ?? const Uuid().v4(),
+                      name: _nameController.text,
                       category: _selectedCategoryId!,
-                      items:
-                          _itemsController.text
+                      ingredients:
+                          _ingredientsController.text
                               .split(',')
                               .map((e) => e.trim())
                               .toList(),
+                      instructions: _instructionsController.text,
                     );
-                    Navigator.pop(context, receipt);
+                    Navigator.pop(context, recipe);
                   }
                 },
                 child: const Text('Submit'),
@@ -248,7 +238,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<Receipt> _receipts = [];
+  List<Recipe> _recipes = [];
   final List<Category> _categories = [
     Category(id: 'groceries', name: 'Groceries'),
     Category(id: 'dining', name: 'Dining'),
@@ -256,22 +246,22 @@ class _MyHomePageState extends State<MyHomePage> {
     Category(id: 'other', name: 'Other'),
   ];
 
-  void _addOrEditReceipt(Receipt? receipt) async {
+  void _addOrEditRecipe(Recipe? recipe) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder:
             (context) =>
-                AddEditReceiptPage(receipt: receipt, categories: _categories),
+                AddEditRecipePage(recipe: recipe, categories: _categories),
       ),
     );
-    if (result is Receipt) {
+    if (result is Recipe) {
       setState(() {
-        if (receipt == null) {
-          _receipts.add(result);
+        if (recipe == null) {
+          _recipes.add(result);
         } else {
-          final index = _receipts.indexOf(receipt);
-          _receipts[index] = result;
+          final index = _recipes.indexOf(recipe);
+          _recipes[index] = result;
         }
       });
     }
@@ -289,20 +279,21 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    _receipts = [
-      Receipt(
+    _recipes = [
+      Recipe(
         id: '1',
-        date: DateTime.now(),
-        amount: 100.50,
+        name: 'Spaghetti Carbonara',
+        instructions:
+            "Cook pasta. Fry pancetta. Mix eggs and cheese. Combine all.",
         category: 'groceries',
-        items: ['Milk', 'Bread', 'Eggs'],
+        ingredients: ['Spaghetti', 'Pancetta', 'Eggs', 'Cheese'],
       ),
-      Receipt(
+      Recipe(
         id: '2',
-        date: DateTime.now(),
-        amount: 50.00,
+        name: 'Chicken Stir-Fry',
+        instructions: "Cut chicken. Stir-fry with vegetables. Add sauce.",
         category: 'dining',
-        items: ['Pizza', 'Drinks'],
+        ingredients: ['Chicken', 'Vegetables', 'Soy Sauce', 'Rice'],
       ),
     ];
   }
@@ -312,7 +303,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Text('Receipts'),
+        title: const Text('Recips'),
         actions: [
           IconButton(
             icon: const Icon(Icons.category),
@@ -321,21 +312,33 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       ),
       body: ListView.builder(
-        itemCount: _receipts.length,
+        itemCount: _recipes.length,
         itemBuilder: (context, index) {
-          final receipt = _receipts[index];
-          return ListTile(
-            title: Text(DateFormat('yyyy-MM-dd').format(receipt.date)),
-            subtitle: Text(
-              '${receipt.amount.toStringAsFixed(2)} - ${receipt.category}',
+          final recipe = _recipes[index];
+          final categoryIcon = categoryIcons[recipe.category] ?? Icons.category;
+          return Card(
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ListTile(
+                leading: Icon(categoryIcon, size: 30.0),
+                title: Text(recipe.name, style: const TextStyle(fontSize: 18)),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [Text(recipe.category)],
+                  ),
+                ),
+                onTap: () => _addOrEditRecipe(recipe),
+              ),
             ),
-            onTap: () => _addOrEditReceipt(receipt),
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _addOrEditReceipt(null),
-        tooltip: 'Add Receipt',
+        onPressed: () => _addOrEditRecipe(null),
+        tooltip: 'Add Recipe',
         child: const Icon(Icons.add),
       ),
     );
