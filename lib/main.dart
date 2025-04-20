@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
@@ -428,11 +430,21 @@ class _MyHomePageState extends State<MyHomePage> {
                 AddEditRecipePage(recipe: recipe, categories: _categories),
       ),
     );
+    final db = await dbHelper.database;
+    if (result is Recipe) {
+      await db.insert('recipes', result.toMap());
+    }
     if (result is Recipe) {
       setState(() {
         if (recipe == null) {
           _recipes.add(result);
         } else {
+          db.update(
+            'recipes',
+            result.toMap(),
+            where: 'id = ?',
+            whereArgs: [result.id],
+          );
           final index = _recipes.indexOf(recipe);
           _recipes[index] = result;
         }
@@ -456,13 +468,49 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
     dbHelper = DatabaseHelper();
     _loadCategories();
+    _loadRecipes();
   }
 
   Future<void> _loadCategories() async {
     final categories = await dbHelper.getCategories();
     setState(() {
-      _categories.clear();
-      _categories.addAll(categories.map((map) => Category.fromMap(map)));
+      _categories.addAll(categories.map((e) => Category.fromMap(e)).toList());
+      if (_categories.isEmpty) {
+        _categories.add(Category(id: 'salad', name: 'Salad'));
+
+        _categories.add(Category(id: 'soup', name: 'Soup'));
+        _categories.add(Category(id: 'dessert', name: 'Dessert'));
+        _categories.add(Category(id: 'other', name: 'Other'));
+        _categories.add(Category(id: 'other', name: 'Other'));
+      }
+    });
+  }
+
+  Future<void> _loadRecipes() async {
+    final recipesFromDb = await dbHelper.getRecipes();
+    setState(() {
+      _recipes = recipesFromDb.map((e) => Recipe.fromMap(e)).toList();
+      if (_recipes.isEmpty) {
+        _recipes.add(
+          Recipe(
+            id: '1',
+            name: 'Spaghetti Carbonara',
+            instructions:
+                "Cook pasta. Fry pancetta. Mix eggs and cheese. Combine all.",
+            category: 'groceries',
+            ingredients: ['Spaghetti', 'Pancetta', 'Eggs', 'Cheese'],
+          ),
+        );
+        _recipes.add(
+          Recipe(
+            id: '2',
+            name: 'Chicken Stir-Fry',
+            instructions: "Cut chicken. Stir-fry with vegetables. Add sauce.",
+            category: 'dining',
+            ingredients: ['Chicken', 'Vegetables', 'Soy Sauce', 'Rice'],
+          ),
+        );
+      }
     });
   }
 
