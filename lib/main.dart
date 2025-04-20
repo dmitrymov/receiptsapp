@@ -2,8 +2,6 @@ import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
-import 'package:intl/intl.dart';
-
 final Map<String, IconData> categoryIcons = {
   'groceries': Icons.local_grocery_store,
   'dining': Icons.restaurant,
@@ -95,19 +93,79 @@ class Category {
   Category({required this.id, required this.name});
 }
 
-class CategoriesPage extends StatelessWidget {
+class CategoriesPage extends StatefulWidget {
+  final List<Recipe> recipes;
   final List<Category> categories;
 
-  const CategoriesPage({super.key, required this.categories});
+  const CategoriesPage({
+    super.key,
+    required this.categories,
+    required this.recipes,
+  });
+
+  @override
+  State<CategoriesPage> createState() => _CategoriesPageState();
+}
+
+class _CategoriesPageState extends State<CategoriesPage> {
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Categories')),
       body: ListView.builder(
-        itemCount: categories.length,
+        itemCount: widget.categories.length,
         itemBuilder: (context, index) {
-          return ListTile(title: Text(categories[index].name));
+          final category = widget.categories[index];
+          return ListTile(
+            title: Text(category.name),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (context) => RecipesByCategoryPage(
+                        category: category,
+                        recipes: widget.recipes,
+                      ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class RecipesByCategoryPage extends StatelessWidget {
+  final Category category;
+  final List<Recipe> recipes;
+  const RecipesByCategoryPage({
+    super.key,
+    required this.category,
+    required this.recipes,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredRecipes =
+        recipes.where((recipe) => recipe.category == category.id).toList();
+    return Scaffold(
+      appBar: AppBar(title: Text(category.name)),
+      body: ListView.builder(
+        itemCount: filteredRecipes.length,
+        itemBuilder: (context, index) {
+          final recipe = filteredRecipes[index];
+          final categoryIcon = categoryIcons[recipe.category] ?? Icons.category;
+          return ListTile(
+            leading: Icon(categoryIcon, size: 30),
+            title: Text(recipe.name),
+            subtitle: Text(recipe.category),
+          );
         },
       ),
     );
@@ -141,6 +199,7 @@ class _AddEditRecipePageState extends State<AddEditRecipePage> {
       _instructionsController.text = widget.recipe!.instructions;
       _selectedCategoryId = widget.recipe!.category;
     } else {}
+    _selectedCategoryId = widget.categories.first.id;
   }
 
   @override
@@ -152,24 +211,24 @@ class _AddEditRecipePageState extends State<AddEditRecipePage> {
     super.dispose();
   }
 
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.recipe == null ? 'Add New Recipe' : 'Edit Recipe'),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+
         child: Form(
           key: _formKey,
           child: Column(
             children: [
               TextFormField(
-                
                 controller: _nameController,
                 decoration: const InputDecoration(
-                    hintText: 'Enter Recipe Name',
-                    labelText: 'Name'),
+                  hintText: 'Enter Recipe Name',
+                  labelText: 'Name',
+                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter a recipe name';
@@ -179,40 +238,51 @@ class _AddEditRecipePageState extends State<AddEditRecipePage> {
               ),
               TextFormField(
                 controller: _ingredientsController,
-                 decoration: const InputDecoration(
+                decoration: const InputDecoration(
                   hintText: 'Enter Ingredients (comma separated)',
                   labelText: 'Ingredients',
                 ),
               ),
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Select Category'),
-                value: _selectedCategoryId,
-                
-                onChanged: (newValue) {
-                  setState(() {
-                    _selectedCategoryId = newValue;
-                  });
-                },
-                items:
-                    widget.categories.map<DropdownMenuItem<String>>((
-                      Category category,
-                    ) {
-                      return DropdownMenuItem<String>(
-                        value: category.id,
-                        child: Text(category.name),
-                      );
-                    }).toList(),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 40, // Adjust the height as needed
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children:
+                      widget.categories.map((category) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                          child: ChoiceChip(
+                            label: Text(category.name),
+                            selected: _selectedCategoryId == category.id,
+                            onSelected: (bool selected) {
+                              setState(() {
+                                _selectedCategoryId =
+                                    selected ? category.id : null;
+                              });
+                            },
+                            selectedColor:
+                                Theme.of(context).colorScheme.primaryContainer,
+                          ),
+                        );
+                      }).toList(),
+                ),
               ),
-              TextFormField(
+              TextField(
                 controller: _instructionsController,
-                 decoration: const InputDecoration(
+                decoration: const InputDecoration(
                   hintText: 'Enter Recipe Instructions',
-                  labelText: 'Instructions'),
+                  labelText: 'Instructions',
+                ),
                 maxLines: null,
+                minLines: 3,
+                keyboardType: TextInputType.multiline,
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(16)),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.all(16),
+                ),
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
                     final recipe = Recipe(
@@ -229,7 +299,10 @@ class _AddEditRecipePageState extends State<AddEditRecipePage> {
                     Navigator.pop(context, recipe);
                   }
                 },
-                child: const Text('Create Recipe', style: TextStyle(fontSize: 18)),
+                child: Text(widget.recipe != null ? 'Update Recipe' :
+                  'Create Recipe',
+                  style: TextStyle(fontSize: 18),
+                ),
               ),
             ],
           ),
@@ -249,9 +322,9 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   List<Recipe> _recipes = [];
   final List<Category> _categories = [
-    Category(id: 'groceries', name: 'Groceries'),
-    Category(id: 'dining', name: 'Dining'),
-    Category(id: 'shopping', name: 'Shopping'),
+    Category(id: 'salad', name: 'Salads'),
+    Category(id: 'dessert', name: 'Dessert'),
+    Category(id: 'soup', name: 'Soup'),
     Category(id: 'other', name: 'Other'),
   ];
 
@@ -280,7 +353,9 @@ class _MyHomePageState extends State<MyHomePage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CategoriesPage(categories: _categories),
+        builder:
+            (context) =>
+                CategoriesPage(categories: _categories, recipes: _recipes),
       ),
     );
   }
@@ -333,9 +408,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 leading: Icon(categoryIcon, size: 30.0),
                 title: Text(recipe.name, style: const TextStyle(fontSize: 18)),
                 subtitle: Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
+                  padding: const EdgeInsets.only(top: 4.0),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [Text(recipe.category)],
                   ),
                 ),
