@@ -189,6 +189,51 @@ class _AddEditRecipePageState extends State<AddEditRecipePage> {
   final _categoryController = TextEditingController();
   final _instructionsController = TextEditingController();
   String? _selectedCategoryId;
+  final newCategoryNameController = TextEditingController();
+  void _addNewCategory(String newCategoryName) {
+    if (newCategoryName.isNotEmpty) {
+      final newCategory = Category(
+        id: newCategoryName.toLowerCase(),
+        name: newCategoryName,
+      );
+      setState(() {
+        final otherCategory = widget.categories.firstWhere(
+          (cat) => cat.id == 'other',
+        );
+        widget.categories.remove(otherCategory);
+        widget.categories.add(newCategory);
+        widget.categories.add(otherCategory);
+        _selectedCategoryId = newCategory.id;
+      });
+    }
+  }
+
+  void _showAddCategoryDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('New Category'),
+          content: TextField(controller: newCategoryNameController),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed:
+                  () => {
+                    _addNewCategory(newCategoryNameController.text),
+                    newCategoryNameController.clear(),
+                    Navigator.pop(context),
+                  },
+              child: const Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   void initState() {
@@ -256,6 +301,14 @@ class _AddEditRecipePageState extends State<AddEditRecipePage> {
                             label: Text(category.name),
                             selected: _selectedCategoryId == category.id,
                             onSelected: (bool selected) {
+                              if (category.id == 'other' && selected) {
+                                _showAddCategoryDialog(context);
+                                setState(() {
+                                  _selectedCategoryId = null;
+                                });
+                                return;
+                              }
+
                               setState(() {
                                 _selectedCategoryId =
                                     selected ? category.id : null;
@@ -299,8 +352,8 @@ class _AddEditRecipePageState extends State<AddEditRecipePage> {
                     Navigator.pop(context, recipe);
                   }
                 },
-                child: Text(widget.recipe != null ? 'Update Recipe' :
-                  'Create Recipe',
+                child: Text(
+                  widget.recipe != null ? 'Update Recipe' : 'Create Recipe',
                   style: TextStyle(fontSize: 18),
                 ),
               ),
@@ -327,6 +380,20 @@ class _MyHomePageState extends State<MyHomePage> {
     Category(id: 'soup', name: 'Soup'),
     Category(id: 'other', name: 'Other'),
   ];
+
+  void _addCategory(String newCategoryName) {
+    if (newCategoryName.isNotEmpty) {
+      final newCategory = Category(
+        id: newCategoryName.toLowerCase(),
+        name: newCategoryName,
+      );
+      final otherCategory = _categories.firstWhere((cat) => cat.id == 'other');
+      _categories.remove(otherCategory);
+      _categories.add(newCategory);
+      _categories.add(otherCategory);
+      setState(() {});
+    }
+  }
 
   void _addOrEditRecipe(Recipe? recipe) async {
     final result = await Navigator.push(
@@ -427,15 +494,4 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
-
-  /*void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something hase
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }*/
 }
